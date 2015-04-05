@@ -398,6 +398,10 @@ var pizzaElementGenerator = function(i) {
   return pizzaContainer;
 };
 
+// stores a collection of pizzas.  this statement was removed from changePizzaSizes, so
+// the code does not have to grab a new collection each time resizePizzas is called.
+var pizzaContainer = document.getElementsByClassName("randomPizzaContainer");
+
 // resizePizzas(size) is called when the slider in the "Our Pizzas" section of the website moves.
 var resizePizzas = function(size) { 
   window.performance.mark("mark_start_resize");   // User Timing API function
@@ -450,10 +454,18 @@ var resizePizzas = function(size) {
 
   // Iterates through pizza elements on the page and changes their widths
   function changePizzaSizes(size) {
-    for (var i = 0; i < document.querySelectorAll(".randomPizzaContainer").length; i++) {
-      var dx = determineDx(document.querySelectorAll(".randomPizzaContainer")[i], size);
-      var newwidth = (document.querySelectorAll(".randomPizzaContainer")[i].offsetWidth + dx) + 'px';
-      document.querySelectorAll(".randomPizzaContainer")[i].style.width = newwidth;
+    /* We see document.querySelectorAll used again, but this time the DOM is being accessed for every iteration twice
+       1) Everytime we check i < the length of the array
+       2) Everytime we are changing the width of the individual element in our CSS
+    */
+    // dx and nwewidth were removed from the for loop to reduce the
+    // the amount of work performed for each iteration of the loop
+    var dx = determineDx(pizzaContainer[0], size);
+    var newwidth = (pizzaContainer[0].offsetWidth + dx) + 'px';    
+
+    for (var i = 0; i < pizzaContainer.length; i++) {
+      /* Again let's console.log() dx and newwidth and see how crucial these numbers are that need to be calculated inside the For Loop */
+      pizzaContainer[i].style.width = newwidth;
     }
   }
 
@@ -500,12 +512,26 @@ function logAverageFrame(times) {   // times is the array of User Timing measure
 // Moves the sliding background pizzas based on scroll position
 function updatePositions() {
   frame++;
+  var j = 0;
   window.performance.mark("mark_start_frame");
+  // moved the calculation of the scroll top value from the for loop
+  var scrollTopValue = document.body.scrollTop / 1250;
+  var length = moverItems.length;
 
-  var items = document.querySelectorAll('.mover');
-  for (var i = 0; i < items.length; i++) {
-    var phase = Math.sin((document.body.scrollTop / 1250) + (i % 5));
-    items[i].style.left = items[i].basicLeft + 100 * phase + 'px';
+  // phase stores the 5 different values used for determining style left for the
+  // moving pizzas
+  var phase = [Math.sin(scrollTopValue + 0),
+                Math.sin(scrollTopValue + 1),
+                Math.sin(scrollTopValue + 2),
+                Math.sin(scrollTopValue + 3),
+                Math.sin(scrollTopValue + 4)];
+
+  for (var i = 0; i < length; i++) {
+    //var phase = Math.sin(scrollTopValue + j);
+    moverItems[i].style.left = moverItems[i].basicLeft + 100 * phase[j++] + 'px';  
+    if (j===5) {
+      j = 0;
+    }
   }
 
   // User Timing API to the rescue again. Seriously, it's worth learning.
@@ -518,6 +544,9 @@ function updatePositions() {
   }
 }
 
+// store a collection of pizzas to be referenced each time the page is scrolled.  this
+// code was moved from inside update position to eliminate repeated calls to get the elements
+var moverItems = document.getElementsByClassName('mover');
 // runs updatePositions on scroll
 window.addEventListener('scroll', updatePositions);
 
